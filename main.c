@@ -9,6 +9,15 @@ char comments[3] = {
 	'#', '/', ';'
 };
 
+struct Macro {
+	char * name;
+	size_t name_len;
+	char ** argv;
+	size_t argc;
+	uint8_t * instructionv;
+	size_t instructionc;
+};
+
 char instructions[16][3] = {
 	"ldi",
 	"ldm",
@@ -109,6 +118,10 @@ which_if:
 	convert(opcode, value);
 }
 
+short int preprocess(char * file, char * line, size_t len) {
+	
+}
+
 size_t strlen_nl(const char * str) {
 	size_t sz = 0;
 	for (; *str != '\n' && *str != '\0'; str++) { if (*str == EOF) { return EOF; }; sz++; };
@@ -202,13 +215,16 @@ int main(int argc, char ** argv) {
 
 	char * line;
 	size_t len = 0;
+	size_t llen = linelen(file)
 
-	for (size_t i = 0; i < linelen(file); i++) {
+	for (size_t i = 0; i < llen; i++) {
 		line = get_line_index(file, i);
 		len = strlen(line);
 
 		decipher(line, len);
 	}
+
+	fclose(binfp);
 
 	free(file);
 }
