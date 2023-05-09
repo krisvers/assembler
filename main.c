@@ -33,7 +33,7 @@ void convert(char * opcode, char * value) {
 
 	for (uint8_t i = 0; i < 16; i++) {
 		if (strncmp(instructions[i], opcode, 3) == 0) {
-			fprintf(outfp, "%c%c", i, v);
+			fprintf(outfp, "%c%c", (i << 4) | (v >> 8), v & 0xFF);
 		}
 	}
 }
