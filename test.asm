@@ -1,10 +1,10 @@
 # load the number of times we want to multiply the other number by
-ldi 3
+ldi 3 ; test after assembly
 swd
 
 # loop:
 ldi 5
-swb
+swb ; doo dad
 
 # perform addition and store into e
 add
