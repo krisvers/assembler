@@ -118,20 +118,20 @@ which_if:
 	convert(opcode, value);
 }
 
-short int preprocess(char * file, char * line, size_t len) {
-	
+void preprocess(char * line, size_t len) {
+	line = line; len = len;
 }
 
 size_t strlen_nl(const char * str) {
 	size_t sz = 0;
-	for (; *str != '\n' && *str != '\0'; str++) { if (*str == EOF) { return EOF; }; sz++; };
+	for (; *str != '\n' && *str != '\0'; str++) { sz++; };
 
 	return sz;
 }
 
 size_t linelen(const char * str) {
 	size_t len = 0;
-	for (; *str != EOF && *str != '\0'; str++) { if (*str == '\n') { len++; } };
+	for (; *str != '\0'; str++) { if (*str == '\n') { len++; } };
 
 	return len;
 }
@@ -172,6 +172,12 @@ int main(int argc, char ** argv) {
 		return 1;
 	}
 
+	outfp = fopen((argc >= 3) ? argv[2] : "out.bin", "w");
+	if (outfp == NULL) {
+		printf("File %s can not be opened for writing\n", (argc >= 3) ? argv[2] : "out.bin");
+		return 3;
+	}
+
 	if (argc >= 2) {
 		if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
 			printf("USAGE: %s [input assembly file] {output binary file}\nIf no output file is provided, it will output to \"out.bin\"\n", argv[0]);
@@ -185,12 +191,6 @@ int main(int argc, char ** argv) {
 		return 2;
 	}
 
-	outfp = fopen((argc >= 3) ? argv[2] : "out.bin", "w");
-	if (outfp == NULL) {
-		printf("File %s can not be opened for writing\n", (argc >= 3) ? argv[2] : "out.bin");
-		return 3;
-	}
-
 	fseek(fp, 0L, SEEK_END);
 	size_t size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
@@ -198,7 +198,7 @@ int main(int argc, char ** argv) {
 	char * file = malloc(size);
 
 	{
-		char c = 0;
+		int c = 0;
 		size_t index = 0;
 		while (c != EOF) {
 			c = fgetc(fp);
@@ -215,16 +215,17 @@ int main(int argc, char ** argv) {
 
 	char * line;
 	size_t len = 0;
-	size_t llen = linelen(file)
+	size_t llen = linelen(file);
 
 	for (size_t i = 0; i < llen; i++) {
 		line = get_line_index(file, i);
 		len = strlen(line);
 
+		preprocess(line, len);
 		decipher(line, len);
 	}
 
-	fclose(binfp);
+	fclose(outfp);
 
 	free(file);
 }
