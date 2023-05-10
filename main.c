@@ -11,11 +11,16 @@ char comments[3] = {
 
 struct Macro {
 	char * name;
-	size_t name_len;
 	char ** argv;
 	size_t argc;
 	uint8_t * instructionv;
 	size_t instructionc;
+};
+
+struct MNode {
+	struct Macro m;
+	void * greater;
+	void * lesser;
 };
 
 char instructions[16][3] = {
@@ -36,6 +41,54 @@ char instructions[16][3] = {
 	"shr",
 	"hlt",
 };
+
+struct MNode * macro_tree = NULL;
+
+size_t hash(char * str) {
+	size_t h = 5381;
+
+	for (; *str != '\0'; str++) {
+		h = h * 33 ^ *str;
+	}
+
+	return h;
+}
+
+void define_macro(char * name, char ** argv, size_t argc, uint8_t * instructionv, size_t instructionc) {
+	struct MNode * mn = malloc(sizeof(struct MNode));
+	if (mn == NULL) {
+		printf("malloc error\ntried defining macro: %s, %p, %lu, %p, %lu\n", name, (void *) argv, argc, instructionv, instructionc);
+		return;
+	}
+
+	mn->m.name = malloc(strlen(name) + 1);
+	mn->m.argv = argv;
+	mn->m.argc = argc;
+	mn->m.instructionv = instructionv;
+	mn->m.instructionc = instructionc;
+
+	strcpy(mn->m.name, name);
+
+	if (macro_tree == NULL) {
+		macro_tree = mn;
+
+		return;
+	}
+
+	struct MNode * c = macro_tree;
+	while (1) {
+		
+	}
+
+	mn->greater = macro_tree;
+	macro_tree = mn;
+}
+
+void print_macros() {
+	for (struct MNode * mn = macro_tree; mn != NULL; mn = mn->greater) {
+		printf("%p: %s, %p, %lu, %p, %lu\n", (void *) mn, mn->m.name, (void *) mn->m.argv, mn->m.argc, mn->m.instructionv, mn->m.instructionc);
+	}
+}
 
 void convert(char * opcode, char * value) {
 	int v = atoi(value);
@@ -124,14 +177,14 @@ void preprocess(char * line, size_t len) {
 
 size_t strlen_nl(const char * str) {
 	size_t sz = 0;
-	for (; *str != '\n' && *str != '\0'; str++) { sz++; };
+	for (; *str != '\n' && *str != '\0'; str++) { if (*str == EOF) { return EOF; }; sz++; };
 
 	return sz;
 }
 
 size_t linelen(const char * str) {
 	size_t len = 0;
-	for (; *str != '\0'; str++) { if (*str == '\n') { len++; } };
+	for (; *str != EOF && *str != '\0'; str++) { if (*str == '\n') { len++; } };
 
 	return len;
 }
@@ -167,15 +220,14 @@ char * get_line_index(char * str, size_t index) {
 }
 
 int main(int argc, char ** argv) {
+	char * test = "test";
+	printf("%lu\n", strlen(test));
+
+//	define_macro("hello", );
+
 	if (argc < 2) {
 		printf("See %s --help or %s -h\n", argv[0], argv[0]);
 		return 1;
-	}
-
-	outfp = fopen((argc >= 3) ? argv[2] : "out.bin", "w");
-	if (outfp == NULL) {
-		printf("File %s can not be opened for writing\n", (argc >= 3) ? argv[2] : "out.bin");
-		return 3;
 	}
 
 	if (argc >= 2) {
@@ -191,6 +243,12 @@ int main(int argc, char ** argv) {
 		return 2;
 	}
 
+	outfp = fopen((argc >= 3) ? argv[2] : "out.bin", "w");
+	if (outfp == NULL) {
+		printf("File %s can not be opened for writing\n", (argc >= 3) ? argv[2] : "out.bin");
+		return 3;
+	}
+
 	fseek(fp, 0L, SEEK_END);
 	size_t size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
@@ -198,7 +256,7 @@ int main(int argc, char ** argv) {
 	char * file = malloc(size);
 
 	{
-		int c = 0;
+		char c = 0;
 		size_t index = 0;
 		while (c != EOF) {
 			c = fgetc(fp);
