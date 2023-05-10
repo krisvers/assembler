@@ -11,9 +11,10 @@ char comments[3] = {
 
 struct Macro {
 	char * name;
+	size_t hash;
 	char ** argv;
 	size_t argc;
-	uint8_t * instructionv;
+	char ** instructionv;
 	size_t instructionc;
 };
 
@@ -54,14 +55,15 @@ size_t hash(char * str) {
 	return h;
 }
 
-void define_macro(char * name, char ** argv, size_t argc, uint8_t * instructionv, size_t instructionc) {
+void define_macro(char * name, char ** argv, size_t argc, char ** instructionv, size_t instructionc) {
 	struct MNode * mn = malloc(sizeof(struct MNode));
 	if (mn == NULL) {
-		printf("malloc error\ntried defining macro: %s, %p, %lu, %p, %lu\n", name, (void *) argv, argc, instructionv, instructionc);
+		printf("malloc error\ntried defining macro: %s, %p, %lu, %p, %lu\n", name, (void *) argv, argc, (void *) instructionv, instructionc);
 		return;
 	}
 
 	mn->m.name = malloc(strlen(name) + 1);
+	mn->m.hash = hash(name);
 	mn->m.argv = argv;
 	mn->m.argc = argc;
 	mn->m.instructionv = instructionv;
@@ -77,16 +79,64 @@ void define_macro(char * name, char ** argv, size_t argc, uint8_t * instructionv
 
 	struct MNode * c = macro_tree;
 	while (1) {
-		
-	}
+		if (mn->m.hash > c->m.hash) {
+			if (c->greater == NULL) {
+				c->greater = mn;
+				break;
+			}
 
-	mn->greater = macro_tree;
-	macro_tree = mn;
+			c = c->greater;
+			continue;
+		}
+
+		if (mn->m.hash == c->m.hash) {
+			printf("Error: macro \"%s\" already defined!\n", mn->m.name);
+			return;
+		}
+
+		if (c->lesser == NULL) {
+			c->lesser = mn;
+			break;
+		}
+
+		c = c->lesser;
+		continue;
+	}
 }
 
-void print_macros() {
-	for (struct MNode * mn = macro_tree; mn != NULL; mn = mn->greater) {
-		printf("%p: %s, %p, %lu, %p, %lu\n", (void *) mn, mn->m.name, (void *) mn->m.argv, mn->m.argc, mn->m.instructionv, mn->m.instructionc);
+struct Macro * get_macro(char * name) {
+	size_t h = hash(name);
+
+	struct MNode * c = macro_tree;
+	while (c != NULL) {
+		if (h == c->m.hash) {
+			return &c->m;
+		}
+
+		if (h > c->m.hash) {
+			c = c->greater;
+			continue;
+		}
+
+		c = c->lesser;
+		continue;
+	}
+
+	printf("Error: macro \"%s\" does not exist!\n", name);
+	return NULL;
+}
+
+void run_macro(struct Macro * m) {
+	printf("macro \"%s\":\n  instructions:\n", m->name);
+
+	for (size_t i = 0; i < m->instructionc; i++) {
+		printf("    %lu: %s\n", i, m->instructionv[i]);
+	}
+
+	printf("  args:\n");
+
+	for (size_t i = 0; i < m->argc; i++) {
+		printf("    %lu: %s\n", i, m->argv[i]);
 	}
 }
 
@@ -177,14 +227,14 @@ void preprocess(char * line, size_t len) {
 
 size_t strlen_nl(const char * str) {
 	size_t sz = 0;
-	for (; *str != '\n' && *str != '\0'; str++) { if (*str == EOF) { return EOF; }; sz++; };
+	for (; *str != '\n' && *str != '\0'; str++) { sz++; };
 
 	return sz;
 }
 
 size_t linelen(const char * str) {
 	size_t len = 0;
-	for (; *str != EOF && *str != '\0'; str++) { if (*str == '\n') { len++; } };
+	for (; *str != '\0'; str++) { if (*str == '\n') { len++; } };
 
 	return len;
 }
@@ -220,10 +270,21 @@ char * get_line_index(char * str, size_t index) {
 }
 
 int main(int argc, char ** argv) {
-	char * test = "test";
-	printf("%lu\n", strlen(test));
+	char * args[] = {
+		"abcd",
+		"1234",
+	};
 
-//	define_macro("hello", );
+	char * instrs[] = {
+		"ldi 5",
+		"swb",
+		"hlt",
+	};
+
+	define_macro("hello", args, 2, instrs, 3);
+	define_macro("hello", (char **) NULL, 0, (char **) NULL, 0);
+	printf("%p\n", (void *) get_macro("hello"));
+	run_macro(get_macro("hello"));
 
 	if (argc < 2) {
 		printf("See %s --help or %s -h\n", argv[0], argv[0]);
@@ -256,7 +317,7 @@ int main(int argc, char ** argv) {
 	char * file = malloc(size);
 
 	{
-		char c = 0;
+		int c = 0;
 		size_t index = 0;
 		while (c != EOF) {
 			c = fgetc(fp);
