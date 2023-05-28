@@ -270,22 +270,6 @@ char * get_line_index(char * str, size_t index) {
 }
 
 int main(int argc, char ** argv) {
-	char * args[] = {
-		"abcd",
-		"1234",
-	};
-
-	char * instrs[] = {
-		"ldi 5",
-		"swb",
-		"hlt",
-	};
-
-	define_macro("hello", args, 2, instrs, 3);
-	define_macro("hello", (char **) NULL, 0, (char **) NULL, 0);
-	printf("%p\n", (void *) get_macro("hello"));
-	run_macro(get_macro("hello"));
-
 	if (argc < 2) {
 		printf("See %s --help or %s -h\n", argv[0], argv[0]);
 		return 1;
